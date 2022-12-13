@@ -2,10 +2,15 @@ package burp.Bootstrap;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import burp.*;
 import burp.UI.Tags;
+import com.alibaba.fastjson.JSON;
 import org.checkerframework.checker.units.qual.C;
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
 
 public class BurpAnalyzedRequest {
     private IBurpExtenderCallbacks callbacks;
@@ -173,6 +178,53 @@ public class BurpAnalyzedRequest {
             return "POST";
         return null;
     }
+
+    /**
+     * 判断字符串为JSON格式还是XML格式还是文件上传的格式
+     *
+     * @param str 参数的value或者POST包的body
+     * @return 返回"JSON"、"XML"、"FileUpload"和null字符串
+     */
+    public String isJSONOrXMLOrFileUpload(String str){
+        try {
+            JSON.parse(str.replaceAll("(\\[(.*?)])","\"test\""));
+            return "JSON";
+        } catch (Exception e) {
+        }
+
+        try {
+            DocumentHelper.parseText(str);
+            return "XML";
+        } catch (Exception e) {
+        }
+
+        if(isFileUpload()){
+            return "FileUpload";
+        }
+
+        return null;
+    }
+
+    /**
+     * 判断body是否为文件上传的格式
+     *
+     * @return 是=true 否=false
+     */
+    public Boolean isFileUpload(){
+        List<String> requestHeaders = this.analyzeRequest().getHeaders();
+        String requestHeaderType = "";
+        for ( int i =0;i <requestHeaders.size() ;i++) {
+            if (requestHeaders.get(i).contains("Content-Type") || requestHeaders.get(i).contains("content-type")){
+                String[] requestHeaderTypes = requestHeaders.get(i).split(":");
+                requestHeaderType = requestHeaderTypes[1];
+            }
+        }
+        if( requestHeaderType.contains("multipart/form-data") ){
+            return true;
+        }
+        return false;
+    }
+
     /**
      * json数据格式请求处理方法
      *
