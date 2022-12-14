@@ -155,9 +155,20 @@ public class BurpAnalyzedRequest {
 
         List<String> headers = this.analyzeRequest().getHeaders();
         byte[] request = this.requestResponse.getRequest();
+        if(this.customBurpHelpers.getHttpRequestBody(request) != null){
+            switch (this.analyzeRequest().getContentType()){
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+            }
+        }
 //        if (newHeaders != null && newHeaders.size() != 0) {
 //            headers.addAll(newHeaders);
 //        }
+        if(this.customBurpUrl.getRequestQuery() != null && this.customBurpHelpers.getHttpRequestBody(request) != null){
+
+        }
 
         if (this.analyzeRequest().getContentType() == 4) {
             // POST请求包提交的数据为json时的处理
@@ -171,19 +182,12 @@ public class BurpAnalyzedRequest {
         return newHttpRequestResponse;
     }
 
-    private String getRequestType(){
-        if(this.analyzeRequest().getMethod() == "GET" && this.customBurpUrl.getRequestQuery() != null)
-            return "GetRequest";
-        if(this.analyzeRequest().getMethod() == "POST")
-            return "POST";
-        return null;
-    }
 
     /**
-     * 判断字符串为JSON格式还是XML格式还是文件上传的格式
+     * 判断字符串为JSON格式还是XML格式
      *
      * @param str 参数的value或者POST包的body
-     * @return 返回"JSON"、"XML"、"FileUpload"和null字符串
+     * @return 返回"JSON"、"XML"、和null字符串
      */
     public String isJSONOrXMLOrFileUpload(String str){
         try {
@@ -198,32 +202,9 @@ public class BurpAnalyzedRequest {
         } catch (Exception e) {
         }
 
-        if(isFileUpload()){
-            return "FileUpload";
-        }
-
         return null;
     }
 
-    /**
-     * 判断body是否为文件上传的格式
-     *
-     * @return 是=true 否=false
-     */
-    public Boolean isFileUpload(){
-        List<String> requestHeaders = this.analyzeRequest().getHeaders();
-        String requestHeaderType = "";
-        for ( int i =0;i <requestHeaders.size() ;i++) {
-            if (requestHeaders.get(i).contains("Content-Type") || requestHeaders.get(i).contains("content-type")){
-                String[] requestHeaderTypes = requestHeaders.get(i).split(":");
-                requestHeaderType = requestHeaderTypes[1];
-            }
-        }
-        if( requestHeaderType.contains("multipart/form-data") ){
-            return true;
-        }
-        return false;
-    }
 
     /**
      * json数据格式请求处理方法
