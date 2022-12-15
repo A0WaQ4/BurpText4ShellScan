@@ -8,12 +8,9 @@ import java.io.PrintWriter;
 
 import burp.*;
 
-import burp.Bootstrap.GlobalVariableReader;
+import burp.Bootstrap.*;
 import burp.CustomScanIssue;
 import burp.DnsLogModule.DnsLog;
-import burp.Bootstrap.YamlReader;
-import burp.Bootstrap.CustomHelpers;
-import burp.Bootstrap.BurpAnalyzedRequest;
 import burp.Application.ExtensionInterface.AAppExtension;
 import burp.CustomErrorException.TaskTimeoutException;
 
@@ -133,10 +130,11 @@ public class RemoteCmdScan extends AAppExtension {
 
     private void remoteCmdDetection(String payload) {
         String key = CustomHelpers.randomStr(15);
+
         String dnsLogUrl = key + "." + this.dnsLog.run().getTemporaryDomainName();
 
         // 发送请求
-        IHttpRequestResponse newHttpRequestResponse = analyzedRequest.makeHttpRequest(payload.replace("dnslog-url", dnsLogUrl), null);
+        IHttpRequestResponse newHttpRequestResponse = analyzedRequest.makeHttpRequest(payload, dnsLogUrl);
 
         // 相关变量设置
         this.keyArrayList.add(key);

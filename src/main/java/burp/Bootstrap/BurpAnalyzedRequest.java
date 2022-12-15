@@ -21,8 +21,9 @@ public class BurpAnalyzedRequest {
 
     private CustomBurpHelpers customBurpHelpers;
 
-    private List<IParameter> jsonParameters = new ArrayList<>();
-    private List<IParameter> eligibleJsonParameters = new ArrayList<>();
+    private List<IParameter> equalParameters = new ArrayList<>();
+    private List<IParameter> JsonXmlFileParameters = new ArrayList<>();
+    private IParameter iParameter;
 
     private IHttpRequestResponse requestResponse;
 
@@ -38,7 +39,8 @@ public class BurpAnalyzedRequest {
         this.requestResponse = requestResponse;
         this.customBurpUrl = new CustomBurpUrl(this.callbacks , requestResponse);
 
-//        initJsonParameters();
+        initParameters();
+        initJsonXmlFileParameters();
 //        initEligibleJsonParameters();
     }
 
@@ -50,64 +52,91 @@ public class BurpAnalyzedRequest {
         return this.helpers.analyzeRequest(this.requestResponse.getRequest());
     }
 
-//    /**
-//     * 初始化json参数
-//     */
-//    private void initJsonParameters() {
-//        if (analyzeRequest().getParameters().isEmpty()) {
-//            return;
-//        }
-//
-//        for (IParameter p : analyzeRequest().getParameters()) {
-//            // 为6的时候,表示为json
-//            // 不是那种 key=json 所以无需加入这里面
-//            if (p.getType() == 6) {
-//                continue;
-//            }
-//            if (p.getName() == null || "".equals(p.getName())) {
-//                continue;
-//            }
-//            if (CustomHelpers.isJson(this.helpers.urlDecode(p.getValue()))) {
-//                this.jsonParameters.add(p);
-//            }
-//        }
-//    }
+    /**
+     * 初始化非json、xml、xml_attr参数
+     */
+    private void initParameters() {
+        if (analyzeRequest().getParameters().isEmpty()) {
+            return;
+        }
+
+        for (IParameter p : analyzeRequest().getParameters()) {
+            // 类型为json、xml、xml_attr、cookie、multi不加入
+            if (p.getType() == 6 || p.getType() == 3 || p.getType() == 4 || p.getType() == 2 || p.getType() == 5) {
+                continue;
+            }
+            if (p.getName() == null || "".equals(p.getName())) {
+                continue;
+            }
+            this.equalParameters.add(p);
+        }
+    }
+
+    private void initJsonXmlFileParameters() {
+        if (analyzeRequest().getParameters().isEmpty()) {
+            return;
+        }
+
+        for (IParameter p : analyzeRequest().getParameters()) {
+            // 类型为cookie、xml_attr不加入
+            if (p.getType() == 2 || p.getType() == 4) {
+                continue;
+            }
+            if (p.getName() == null || "".equals(p.getName())) {
+                continue;
+            }
+            this.JsonXmlFileParameters.add(p);
+        }
+    }
+
+
+
+    /**
+     * 解析json字符串，普通和嵌套类型都可
+     *
+     * @param jsonData 请求包的json数据
+     * @param payload  crlf的payload
+     * @return 返回添加payload的json字符串
+     */
+    public String  analyseJson(String jsonData , String payload) {
+        String jsonResult = "";
+        boolean j = false;
+        for(int i=0;i<jsonData.length();i++){
+            if(j&&jsonData.charAt(i) == '"'){
+                j = false;
+                continue;
+            }
+            if(j){
+                continue;
+            }
+            if(jsonData.charAt(i) == '"'&&jsonData.charAt(i-1) == ':'){
+                jsonResult = jsonResult + "\"" + payload + "\"";
+                j = true;
+            }else{
+                jsonResult = jsonResult + jsonData.charAt(i);
+            }
+
+        }
+        return jsonResult;
+    }
 
     /**
      * 获取所有的json参数
      *
      * @return List<IParameter>
      */
-    public List<IParameter> getAllJsonParameters() {
-        return this.jsonParameters;
+    public List<IParameter> getEqualParameters() {
+        return this.equalParameters;
     }
 
-//    /**
-//     * 初始化所有符合条件的json参数
-//     */
-//    private void initEligibleJsonParameters() {
-//        List<Integer> scanTypeList = this.tags.getBaseSettingTagClass().getScanTypeList();
-//
-//        if (this.getAllJsonParameters().size() == 0) {
-//            return;
-//        }
-//
-//        for (IParameter p : this.getAllJsonParameters()) {
-//            for (Integer type : scanTypeList) {
-//                if (p.getType() == type) {
-//                    this.eligibleJsonParameters.add(p);
-//                }
-//            }
-//        }
-//    }
 
     /**
      * 获取所有符合条件的json参数
      *
      * @return List<IParameter>
      */
-    public List<IParameter> getEligibleJsonParameters() {
-        return this.eligibleJsonParameters;
+    public List<IParameter> getJsonXmlFileParameters() {
+        return this.JsonXmlFileParameters;
     }
 
     /**
@@ -119,38 +148,17 @@ public class BurpAnalyzedRequest {
         if (CustomHelpers.isJson(this.customBurpHelpers.getHttpRequestBody(requestResponse().getRequest()))) {
             return true;
         }
-        if (getAllJsonParameters().isEmpty()) {
+        if (getEqualParameters().isEmpty()) {
             return false;
         }
         return true;
     }
 
-//    /**
-//     * 判断站点是否有符合条件的json
-//     *
-//     * @return
-//     */
-//    public Boolean isSiteEligibleJson() {
-//        List<Integer> scanTypeList = this.tags.getBaseSettingTagClass().getScanTypeList();
-//        if (CustomHelpers.isJson(this.customBurpHelpers.getHttpRequestBody(requestResponse().getRequest()))) {
-//            for (Integer type : scanTypeList) {
-//                if (type == 6) {
-//                    return true;
-//                }
-//            }
-//        }
-//
-//        if (this.getEligibleJsonParameters().size() > 0) {
-//            return true;
-//        }
-//
-//        return false;
-//    }
 
     /**
      * 会根据程序类型自动组装请求的 请求发送接口
      */
-    public IHttpRequestResponse makeHttpRequest(String payload, List<String> newHeaders) {
+    public IHttpRequestResponse makeHttpRequest(String payload, String dnsLogUrl) {
         byte[] newRequest;
 
         List<String> headers = this.analyzeRequest().getHeaders();
@@ -167,29 +175,38 @@ public class BurpAnalyzedRequest {
 //            headers.addAll(newHeaders);
 //        }
         if(this.customBurpUrl.getRequestQuery() != null && this.customBurpHelpers.getHttpRequestBody(request) != null){
-
-        }
-
-        if (this.analyzeRequest().getContentType() == 4) {
-            // POST请求包提交的数据为json时的处理
-            newRequest = this.buildParameter(payload, this.buildHttpMessage(payload), headers);
+            newRequest = this.buildParameter(payload,  headers, dnsLogUrl);
         } else {
-            // 普通数据格式的处理
-            newRequest = this.buildParameter(payload, null, headers);
+            switch (this.analyzeRequest().getContentType()){
+                case 0:
+                case 1:
+                case 2:
+                default:
+                    newRequest = this.buildParameter(payload, headers, dnsLogUrl);
+            }
         }
+
+//        if (this.analyzeRequest().getContentType() == 4) {
+//            // POST请求包提交的数据为json时的处理
+//            newRequest = this.buildParameter(payload, this.buildHttpMessage(payload), headers);
+//        } else {
+//            // 普通数据格式的处理
+//            newRequest = this.buildParameter(payload, null, headers);
+//        }
 
         IHttpRequestResponse newHttpRequestResponse = this.callbacks.makeHttpRequest(this.requestResponse().getHttpService(), newRequest);
         return newHttpRequestResponse;
     }
 
 
+
     /**
      * 判断字符串为JSON格式还是XML格式
      *
      * @param str 参数的value或者POST包的body
-     * @return 返回"JSON"、"XML"、和null字符串
+     * @return 返回"JSON"、"XML"和null
      */
-    public String isJSONOrXMLOrFileUpload(String str){
+    public String isJSONOrXMLUpload(String str){
         try {
             JSON.parse(str.replaceAll("(\\[(.*?)])","\"test\""));
             return "JSON";
@@ -220,30 +237,41 @@ public class BurpAnalyzedRequest {
     }
 
     /**
-     * 普通数据格式的参数构造方法
+     * json、xml的参数构造方法
      *
      * @param payload
      * @return
      */
-    private byte[] buildParameter(String payload, byte[] request, List<String> headers) {
+    private byte[] buildParameter(String payload, List<String> headers, String dnsLogUrl) {
         byte[] newRequest;
-
-        if (request == null) {
-            newRequest = this.requestResponse().getRequest();
-        } else {
-            newRequest = request;
-        }
-
+        String dnsLog = this.helpers.analyzeRequest(this.requestResponse).getMethod() + "."
+                + this.customBurpUrl.getRequestHost() + "."
+                + this.customBurpUrl.getRequestPath().replace("/",".") + dnsLogUrl;
+        newRequest = this.requestResponse().getRequest();
+        int paramNumber = 0;
         // 添加header头
+        for(int i =1; i<headers.size();i++){
+            if(headers.get(i).contains("User-Agent:") || headers.get(i).contains("token:") ||
+                    headers.get(i).contains("Token:") || headers.get(i).contains("Bearer Token:") ||
+                    headers.get(i).contains("X-Forwarded-For:") || headers.get(i).contains("Content-Type:") ||
+                    headers.get(i).contains("Referer:") || headers.get(i).contains("referer:") ||
+                    headers.get(i).contains("Origin:")){
+                headers.set(i,headers.get(i) + payload.replace("dns-url",(paramNumber++)+"."+dnsLog));
+            }
+            if(headers.get(i).contains("Accept-Language:") || headers.get(i).contains("Accept:") ||
+                    headers.get(i).contains("Accept-Encoding:")){
+                headers.set(i, headers.get(i) + "," + payload.replace("dns-url",(paramNumber++)+"."+dnsLog));
+            }
+        }
         newRequest = this.helpers.buildHttpMessage(
                 headers,
                 this.customBurpHelpers.getHttpRequestBody(newRequest).getBytes());
 
-        for (int i = 0; i < this.getEligibleJsonParameters().size(); i++) {
-            IParameter p = this.getEligibleJsonParameters().get(i);
+        for (int i = 0; i < this.getJsonXmlFileParameters().size(); i++) {
+            IParameter p = this.getJsonXmlFileParameters().get(i);
             IParameter newParameter = this.helpers.buildParameter(
                     p.getName(),
-                    payload,
+                    payload.replace("dnslog-url",(paramNumber++)+"."+dnsLog),
                     p.getType()
             );
 
