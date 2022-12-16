@@ -69,7 +69,7 @@ java maven项目，可以使用`mvn package`进行编译
 
 [https://github.com/pmiaowu/BurpFastJsonScan](https://github.com/pmiaowu/BurpFastJsonScan)
 
-[https://github.com/f0ng/text4shellburpscanner](https://github.com/f0ng/text4shellburpscanner)
+[https://github.com/f0ng/log4j2burpscanner](https://github.com/f0ng/log4j2burpscanner)
 
 # 免责声明
 
