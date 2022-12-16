@@ -1,12 +1,13 @@
 package burp;
 
-import burp.Bootstrap.CustomBurpHelpers;
-import burp.Bootstrap.CustomBurpParameters;
-import burp.Bootstrap.CustomBurpUrl;
-import burp.Bootstrap.YamlReader;
+import burp.Application.RemoteCmdExtension.RemoteCmd;
+import burp.Bootstrap.*;
+import burp.CustomErrorException.TaskTimeoutException;
+import burp.DnsLogModule.DnsLog;
 import burp.UI.*;
 
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -16,6 +17,8 @@ public class BurpExtender implements IBurpExtender, IScannerCheck, IExtensionSta
     public Tags tags;
     private IBurpExtenderCallbacks callbacks;
     private IExtensionHelpers helpers;
+
+    private GlobalVariableReader globalVariableReader;
 
     private PrintWriter stdout;
     private PrintWriter stderr;
@@ -30,6 +33,10 @@ public class BurpExtender implements IBurpExtender, IScannerCheck, IExtensionSta
 
         this.stdout = new PrintWriter(callbacks.getStdout(), true);
         this.stderr = new PrintWriter(callbacks.getStderr(), true);
+
+        // 全局变量的数据保存地址
+        // 用于在程序执行的过程中能够实时的修改变量数据使用
+        this.globalVariableReader = new GlobalVariableReader();
 
         this.tags = new Tags(callbacks, NAME);
 
@@ -70,6 +77,8 @@ public class BurpExtender implements IBurpExtender, IScannerCheck, IExtensionSta
         List<IScanIssue> issues = new ArrayList<>();
 
         List<String> domainNameBlacklist = this.yamlReader.getStringList("scan.domainName.blacklist");
+        // 基础请求分析
+        BurpAnalyzedRequest baseAnalyzedRequest = new BurpAnalyzedRequest(this.callbacks, this.tags, baseRequestResponse);
 
         CustomBurpUrl baseBurpUrl = new CustomBurpUrl(this.callbacks, baseRequestResponse);
         CustomBurpParameters baseBurpParameters = new CustomBurpParameters(this.callbacks,baseRequestResponse);
@@ -86,51 +95,75 @@ public class BurpExtender implements IBurpExtender, IScannerCheck, IExtensionSta
         if (this.isUrlBlackListSuffix(baseBurpUrl)) {
             return null;
         }
-//        // 传入不同payload分别对Response Header进行检测
-//        CrlfScan hostScan = new CrlfScan(this.callbacks,baseRequestResponse,baseBurpParameters,baseBurpUrl,"Application.hostPayloads");
-//        // 如果发现了存在Response可控 添加到面板 进行下一步扫描
-//        if(hostScan.getIsVuln()){
-//            int tagId = this.tags.add(
-//                    "Scanning",
-//                    this.helpers.analyzeRequest(baseRequestResponse).getMethod(),
-//                    baseBurpUrl.getHttpRequestUrl().toString(),
-//                    this.helpers.analyzeResponse(baseRequestResponse.getResponse()).getStatusCode() + "",
-//                    "[*] found Response Header Controlled , now testing CRLF-Injection",
-//                    String.valueOf(baseRequestResponse.getResponse().length),
-//                    hostScan.getVulnRequestResponse()
-//            );
-//            CrlfScan crlfScan = new CrlfScan(this.callbacks,baseRequestResponse,baseBurpParameters,baseBurpUrl,"Application.payloads");
-//            // 如果发现了CRLF漏洞 更新面板 否则更新为未发现漏洞
-//            if(crlfScan.getIsVuln()){
-//                this.tags.save(
-//                        tagId,
-//                        "CRLF Injection",
-//                        this.helpers.analyzeRequest(baseRequestResponse).getMethod(),
-//                        baseBurpUrl.getHttpRequestUrl().toString(),
-//                        this.helpers.analyzeResponse(baseRequestResponse.getResponse()).getStatusCode() + "",
-//                        "[+] found CRLF Injection",
-//                        String.valueOf(baseRequestResponse.getResponse().length),
-//                        crlfScan.getVulnRequestResponse()
-//                );
-//            }else{
-//                this.tags.save(
-//                        tagId,
-//                        "Response Header Controlled",
-//                        this.helpers.analyzeRequest(baseRequestResponse).getMethod(),
-//                        baseBurpUrl.getHttpRequestUrl().toString(),
-//                        this.helpers.analyzeResponse(baseRequestResponse.getResponse()).getStatusCode() + "",
-//                        "[*] just found Response Header Controlled",
-//                        String.valueOf(baseRequestResponse.getResponse().length),
-//                        hostScan.getVulnRequestResponse()
-//                );
-//            }
-//        }
 
+        try {
+            // 远程cmd扩展
+            IScanIssue remoteCmdIssuesDetail = this.remoteCmdExtension(baseAnalyzedRequest);
+            if (remoteCmdIssuesDetail != null) {
+                issues.add(remoteCmdIssuesDetail);
+                return issues;
+            }
+        } catch (TaskTimeoutException e) {
+            this.stdout.println("========插件错误-超时错误============");
+            this.stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
+            this.stdout.println("请使用该url重新访问,若是还多次出现此错误,则很有可能waf拦截");
+            this.stdout.println("错误详情请查看Extender里面对应插件的Errors标签页");
+            this.stdout.println("========================================");
+            this.stdout.println(" ");
+            e.printStackTrace(this.stderr);
+        } catch (Exception e) {
+            this.stdout.println("========插件错误-未知错误============");
+            this.stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
+            this.stdout.println("请使用该url重新访问,若是还多次出现此错误,则很有可能waf拦截");
+            this.stdout.println("错误详情请查看Extender里面对应插件的Errors标签页");
+            this.stdout.println("========================================");
+            this.stdout.println(" ");
+            e.printStackTrace(this.stderr);
+        } finally {
+            this.stdout.println("================扫描完毕================");
+            this.stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
+            this.stdout.println("========================================");
+            this.stdout.println(" ");
 
-        // 输出UI
+            return issues;
+        }
 
+    }
 
-        return null;
+    /**
+     * 远程cmd扩展
+     *
+     * @param analyzedRequest
+     * @return IScanIssue issues
+     * @throws ClassNotFoundException
+     * @throws NoSuchMethodException
+     * @throws InvocationTargetException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     */
+    private IScanIssue remoteCmdExtension(BurpAnalyzedRequest analyzedRequest) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        String provider = this.yamlReader.getString("application.remoteCmdExtension.config.provider");
+
+        DnsLog dnsLog = new DnsLog(this.callbacks, this.yamlReader.getString("dnsLogModule.provider"));
+        RemoteCmd remoteCmd = new RemoteCmd(this.globalVariableReader, this.callbacks, analyzedRequest, dnsLog, this.yamlReader, provider);
+        if (!remoteCmd.run().isIssue()) {
+            return null;
+        }
+
+        IHttpRequestResponse httpRequestResponse = remoteCmd.run().getHttpRequestResponse();
+
+        int tagId = this.tags.add(
+                remoteCmd.run().getExtensionName(),
+                this.helpers.analyzeRequest(httpRequestResponse).getMethod(),
+                new CustomBurpUrl(this.callbacks, httpRequestResponse).getHttpRequestUrl().toString(),
+                this.helpers.analyzeResponse(httpRequestResponse.getResponse()).getStatusCode() + "",
+                "[+] found Text4Shell command execution",
+                String.valueOf(httpRequestResponse.getResponse().length),
+                remoteCmd.run().getHttpRequestResponse()
+        );
+
+        remoteCmd.run().consoleExport();
+        return remoteCmd.run().export();
     }
 
     /**

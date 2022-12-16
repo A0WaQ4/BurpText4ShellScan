@@ -137,7 +137,7 @@ public class RemoteCmdScan extends AAppExtension {
         IHttpRequestResponse newHttpRequestResponse = analyzedRequest.makeHttpRequest(payload, dnsLogUrl);
 
         // 相关变量设置
-        this.keyArrayList.add(key);
+        this.keyArrayList.add(analyzedRequest.getKey() + key);
         this.dnsLogUrlArrayList.add(dnsLogUrl);
         this.httpRequestResponseArrayList.add(newHttpRequestResponse);
 
