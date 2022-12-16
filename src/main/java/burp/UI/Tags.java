@@ -121,7 +121,7 @@ public class Tags extends AbstractTableModel implements ITab, IMessageEditorCont
     }
 
     public String getTabCaption() {
-        return "CRLFScan";
+        return "Text4ShellScan";
     }
 
     public Component getUiComponent() {

@@ -23,7 +23,6 @@ public class BurpAnalyzedRequest {
     private List<IParameter> equalParameters = new ArrayList<>();
     private List<IParameter> JsonXmlFileParameters = new ArrayList<>();
     private List<IParameter> URLParameters = new ArrayList<>();
-    private IParameter iParameter;
 
     private IHttpRequestResponse requestResponse;
 
@@ -118,7 +117,7 @@ public class BurpAnalyzedRequest {
      * 解析json字符串，普通和嵌套类型都可
      *
      * @param jsonData 请求包的json数据
-     * @param payload  crlf的payload
+     * @param payload  textshell的payload
      * @return 返回添加payload的json字符串
      */
     public String  analyseJson(String jsonData , String payload, String dnsLog) {

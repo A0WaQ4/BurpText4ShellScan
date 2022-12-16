@@ -38,6 +38,11 @@ public class BurpExtender implements IBurpExtender, IScannerCheck, IExtensionSta
         // 用于在程序执行的过程中能够实时的修改变量数据使用
         this.globalVariableReader = new GlobalVariableReader();
 
+        // 是否卸载扩展
+        // 用于卸载插件以后,把程序快速退出去,避免卡顿
+        // true = 已被卸载, false = 未卸载
+        this.globalVariableReader.putBooleanData("isExtensionUnload", false);
+
         this.tags = new Tags(callbacks, NAME);
 
         callbacks.setExtensionName(NAME);
@@ -127,6 +132,8 @@ public class BurpExtender implements IBurpExtender, IScannerCheck, IExtensionSta
 
             return issues;
         }
+
+
 
     }
 
