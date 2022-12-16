@@ -365,7 +365,7 @@ public class BurpAnalyzedRequest {
                 default:
                     newParameter = this.helpers.buildParameter(
                             p.getName(),
-                            payload.replace("dnslog-url",(paramNumber++)+"."+dnsLog),
+                            payload.replace("dns-url",(paramNumber++)+"."+dnsLog),
                             p.getType()
                     );
                     break;
