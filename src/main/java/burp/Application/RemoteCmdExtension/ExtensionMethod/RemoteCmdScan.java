@@ -64,26 +64,31 @@ public class RemoteCmdScan extends AAppExtension {
     }
 
     private void runExtension() {
+
+        PrintWriter stdout = new PrintWriter(this.callbacks.getStdout(), true);
         for (String payload : this.payloads) {
             // 这个参数为true说明插件已经被卸载,退出所有任务,避免继续扫描
             if (this.globalVariableReader.getBooleanData("isExtensionUnload")) {
                 return;
             }
-
+            stdout.println("globalVariableReader已执行");
             // 说明接收到了dnslog请求确定是FastJson
             if (this.isIssue()) {
                 return;
             }
+            stdout.println("isIssue已执行");
 
             // 如果dnslog有内容但是 this.isIssue() 为false
             // 这可能是因为 请求发出去了 dnslog还没反应过来
             // 这种情况后面的循环就没必要了, 退出该循环
             // 等待二次验证即可
-            if (this.dnsLog.run().getBodyContent() != null) {
-                if (this.dnsLog.run().getBodyContent().length() >= 1) {
-                    break;
-                }
-            }
+//            if (this.dnsLog.run().getBodyContent() != null) {
+//                if (this.dnsLog.run().getBodyContent().length() >= 1) {
+//                    break;
+//                }
+//            }
+
+            stdout.println("dnsLog已执行");
 
             // 判断程序是否运行超时
             Integer startTime = CustomHelpers.getSecondTimestamp(this.startDate);
@@ -93,8 +98,13 @@ public class RemoteCmdScan extends AAppExtension {
                 throw new TaskTimeoutException("scan task timed out");
             }
 
+
+            stdout.println("maxExecutionTime已执行");
+
             // 实际业务处理
             this.remoteCmdDetection(payload);
+
+            stdout.println("remoteCmdDetection已执行");
         }
 
         // 防止因为dnslog卡导致没有检测到的问题, 这里进行二次检测, 保证不会漏报
