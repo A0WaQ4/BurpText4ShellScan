@@ -281,6 +281,7 @@ public class BurpAnalyzedRequest {
     public String getKey(){
         String key = this.helpers.analyzeRequest(this.requestResponse).getMethod() + "."
                 + this.customBurpUrl.getRequestHost() + "."
+                + this.customBurpUrl.getRequestPort()
                 + this.customBurpUrl.getRequestPath().replace("/",".");
         return key;
     }
@@ -417,7 +418,7 @@ public class BurpAnalyzedRequest {
                 default:
                     newParameter = this.helpers.buildParameter(
                             p.getName(),
-                            payload.replace("dnslog-url",(paramNumber++)+"."+dnsLog),
+                            payload.replace("dns-url",(paramNumber++)+"."+dnsLog),
                             p.getType()
                     );
                     break;
@@ -454,7 +455,7 @@ public class BurpAnalyzedRequest {
         }
         for ( String str : listMultipart) {
             body = body.replace("\n" + str + "\r\n--",
-                    "\n" + payload.replace("dnslog-url",
+                    "\n" + payload.replace("dns-url",
                             (paramNumber++) + "." + dnsLog) + "\r\n--");
         }
         newRequest = this.helpers.buildHttpMessage(
@@ -485,7 +486,7 @@ public class BurpAnalyzedRequest {
             IParameter p = this.getJsonXmlFileParameters().get(i);
             IParameter newParameter = this.helpers.buildParameter(
                     p.getName(),
-                    payload.replace("dnslog-url",(paramNumber++) + "."+ dnsLog),
+                    payload.replace("dns-url",(paramNumber++) + "."+ dnsLog),
                     p.getType()
             );
 

