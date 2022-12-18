@@ -16,6 +16,7 @@ java maven项目，可以使用`mvn package`进行编译
 
 ```
 1.0 - 首次上传，对所有经过burp的包进行被动扫描，扫描对象包括了json、xml、fileupload
+1.1 - 修复了body为空时导致的检测错误，修复了对URL参数不检测的错误
 ```
 
 # payload
