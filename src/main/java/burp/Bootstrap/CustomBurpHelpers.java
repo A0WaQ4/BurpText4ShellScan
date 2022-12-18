@@ -47,6 +47,29 @@ public class CustomBurpHelpers {
     }
 
     /**
+     * 获取请求的Body内容
+     *
+     * @return String
+     */
+    public String getHttpRequestBodyIsNullOrNo(byte[] request) {
+        IRequestInfo requestInfo = this.helpers.analyzeRequest(request);
+
+        int httpRequestBodyOffset = requestInfo.getBodyOffset();
+        int httpRequestBodyLength = request.length - httpRequestBodyOffset;
+
+        if(httpRequestBodyLength == 0){
+            return null;
+        }
+        String httpRequestBody = null;
+        try {
+            httpRequestBody = new String(request, httpRequestBodyOffset, httpRequestBodyLength, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+        return httpRequestBody;
+    }
+
+    /**
      * 获取响应的Body内容
      *
      * @return String

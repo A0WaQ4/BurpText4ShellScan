@@ -197,6 +197,22 @@ public class BurpAnalyzedRequest {
     }
 
     /**
+     * 获取所有符合条件的参数
+     *
+     * @return List<IParameter>
+     */
+    public List<IParameter> getAllParameters() {
+        List<IParameter> AllParameters = new ArrayList<>();
+        for(IParameter p:this.JsonXmlFileParameters){
+            AllParameters.add(p);
+        }
+        for(IParameter p: this.URLParameters){
+            AllParameters.add(p);
+        }
+        return AllParameters;
+    }
+
+    /**
      * 判断请求参数内容是否有Json
      *
      * @return boolean
@@ -220,7 +236,7 @@ public class BurpAnalyzedRequest {
 
         byte[] request = this.requestResponse.getRequest();
 
-        if(this.customBurpUrl.getRequestQuery() != null && this.customBurpHelpers.getHttpRequestBody(request) != null) {
+        if(this.customBurpUrl.getRequestQuery() != null && this.customBurpHelpers.getHttpRequestBodyIsNullOrNo(request) != null) {
             byte[] URLRequest = this.buildURLParameter(payload, dnsLogUrl);
             IHttpRequestResponse urlHttpRequestResponse = this.callbacks.makeHttpRequest(this.requestResponse().getHttpService(),URLRequest);
             switch (this.analyzeRequest().getContentType()){
@@ -242,7 +258,7 @@ public class BurpAnalyzedRequest {
                     newRequest = this.buildFileParameter(payload, dnsLogUrl);
                     break;
                 default:
-                    newRequest = this.buildParameter(payload, dnsLogUrl);
+                    newRequest = this.buildAllParameter(payload, dnsLogUrl);
             }
         }
 
@@ -484,6 +500,38 @@ public class BurpAnalyzedRequest {
 
         for (int i = 0; i < this.getJsonXmlFileParameters().size(); i++) {
             IParameter p = this.getJsonXmlFileParameters().get(i);
+            IParameter newParameter = this.helpers.buildParameter(
+                    p.getName(),
+                    payload.replace("dns-url",(paramNumber++) + "."+ dnsLog),
+                    p.getType()
+            );
+
+            newRequest = this.helpers.updateParameter(
+                    newRequest,
+                    newParameter);
+        }
+        return newRequest;
+    }
+
+    /**
+     * body中只有json、xml的参数构造方法
+     *
+     * @param payload
+     * @return
+     */
+    private byte[] buildAllParameter(String payload, String dnsLogUrl) {
+        byte[] newRequest;
+        String dnsLog = this.getKey() + dnsLogUrl;
+        newRequest = this.requestResponse().getRequest();
+        int paramNumber = 1;
+        // 添加header头
+        List<String> headers = this.getHeaders(payload, dnsLog);
+        newRequest = this.helpers.buildHttpMessage(
+                headers,
+                this.customBurpHelpers.getHttpRequestBody(newRequest).getBytes());
+
+        for (int i = 0; i < this.getAllParameters().size(); i++) {
+            IParameter p = this.getAllParameters().get(i);
             IParameter newParameter = this.helpers.buildParameter(
                     p.getName(),
                     payload.replace("dns-url",(paramNumber++) + "."+ dnsLog),

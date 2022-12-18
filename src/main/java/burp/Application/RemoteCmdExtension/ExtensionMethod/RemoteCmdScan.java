@@ -71,12 +71,10 @@ public class RemoteCmdScan extends AAppExtension {
             if (this.globalVariableReader.getBooleanData("isExtensionUnload")) {
                 return;
             }
-            stdout.println("globalVariableReader已执行");
-            // 说明接收到了dnslog请求确定是FastJson
+            // 说明接收到了dnslog请求确定是Text4Shell
             if (this.isIssue()) {
                 return;
             }
-            stdout.println("isIssue已执行");
 
             // 如果dnslog有内容但是 this.isIssue() 为false
             // 这可能是因为 请求发出去了 dnslog还没反应过来
@@ -88,7 +86,6 @@ public class RemoteCmdScan extends AAppExtension {
 //                }
 //            }
 
-            stdout.println("dnsLog已执行");
 
             // 判断程序是否运行超时
             Integer startTime = CustomHelpers.getSecondTimestamp(this.startDate);
@@ -99,12 +96,10 @@ public class RemoteCmdScan extends AAppExtension {
             }
 
 
-            stdout.println("maxExecutionTime已执行");
 
             // 实际业务处理
             this.remoteCmdDetection(payload);
 
-            stdout.println("remoteCmdDetection已执行");
         }
 
         // 防止因为dnslog卡导致没有检测到的问题, 这里进行二次检测, 保证不会漏报
