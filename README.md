@@ -58,7 +58,7 @@ java maven项目，可以使用`mvn package`进行编译
 
 ### 0x03 配置
 
-在`resources/config.yml`中的`dnsLogModule`修改dnslog配置
+在`resources/config.yml`中的`dnsLogModule`修改dnslog配置，使用时可以修改为自搭建的DnsLog服务器
 
 ![image-20221217014026078](https://github.com/A0WaQ4/BurpText4ShellScan/blob/main/img/image-20221217014026078.png)
 
