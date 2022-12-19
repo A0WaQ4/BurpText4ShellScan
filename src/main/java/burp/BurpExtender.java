@@ -6,13 +6,14 @@ import burp.CustomErrorException.TaskTimeoutException;
 import burp.DnsLogModule.DnsLog;
 import burp.UI.*;
 
+import javax.swing.*;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class BurpExtender implements IBurpExtender, IScannerCheck, IExtensionStateListener {
+public class BurpExtender implements IBurpExtender, IScannerCheck, IExtensionStateListener, IContextMenuFactory {
     public static String NAME="Text4ShellScan";
     public Tags tags;
     private IBurpExtenderCallbacks callbacks;
@@ -133,8 +134,75 @@ public class BurpExtender implements IBurpExtender, IScannerCheck, IExtensionSta
             return issues;
         }
 
+    }
+
+    /**
+     * 进行主动扫描
+     *
+     * @param invocation
+     * @return
+     */
+    @Override
+    public List<JMenuItem> createMenuItems (IContextMenuInvocation invocation ) {
+
+        JMenuItem jMenuItem = new JMenuItem("Send to Text4Shell Scanner");
+        List<JMenuItem> jMenuItemList = new ArrayList<>();
+
+        jMenuItemList.add(jMenuItem);
+        jMenuItem.addActionListener(a -> {
+            IHttpRequestResponse baseRequestResponse = invocation.getSelectedMessages()[0];
+            List<IScanIssue> issues = new ArrayList<>();
+            List<String> domainNameBlacklist = this.yamlReader.getStringList("scan.domainName.blacklist");
+            // 基础请求分析
+            BurpAnalyzedRequest baseAnalyzedRequest = new BurpAnalyzedRequest(this.callbacks, this.tags, baseRequestResponse);
+
+            CustomBurpUrl baseBurpUrl = new CustomBurpUrl(this.callbacks, baseRequestResponse);
+            CustomBurpParameters baseBurpParameters = new CustomBurpParameters(this.callbacks,baseRequestResponse);
 
 
+            // 判断域名黑名单
+            if (domainNameBlacklist != null && domainNameBlacklist.size() >= 1) {
+                if (isMatchDomainName(baseBurpUrl.getRequestHost(), domainNameBlacklist)) {
+                    return ;
+                }
+            }
+
+            // 判断当前请求后缀,是否为url黑名单后缀
+            if (this.isUrlBlackListSuffix(baseBurpUrl)) {
+                return ;
+            }
+
+            try {
+                // 远程cmd扩展
+                IScanIssue remoteCmdIssuesDetail = this.remoteCmdExtension(baseAnalyzedRequest);
+                if (remoteCmdIssuesDetail != null) {
+                    issues.add(remoteCmdIssuesDetail);
+                }
+            } catch (TaskTimeoutException e) {
+                this.stdout.println("========插件错误-超时错误============");
+                this.stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
+                this.stdout.println("请使用该url重新访问,若是还多次出现此错误,则很有可能waf拦截");
+                this.stdout.println("错误详情请查看Extender里面对应插件的Errors标签页");
+                this.stdout.println("========================================");
+                this.stdout.println(" ");
+                e.printStackTrace(this.stderr);
+            } catch (Exception e) {
+                this.stdout.println("========插件错误-未知错误============");
+                this.stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
+                this.stdout.println("请使用该url重新访问,若是还多次出现此错误,则很有可能waf拦截");
+                this.stdout.println("错误详情请查看Extender里面对应插件的Errors标签页");
+                this.stdout.println("========================================");
+                this.stdout.println(" ");
+                e.printStackTrace(this.stderr);
+            } finally {
+                this.stdout.println("================扫描完毕================");
+                this.stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
+                this.stdout.println("========================================");
+                this.stdout.println(" ");
+            }
+        });
+
+        return jMenuItemList;
     }
 
     /**

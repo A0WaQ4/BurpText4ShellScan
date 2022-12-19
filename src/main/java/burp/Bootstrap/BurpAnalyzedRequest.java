@@ -246,6 +246,12 @@ public class BurpAnalyzedRequest {
                 case 2:
                     newRequest = this.buildFileParameter(payload, dnsLogUrl);
                     break;
+                case 3:
+                    newRequest = this.buildXMLParameter(payload, dnsLogUrl);
+                    break;
+                case 4:
+                    newRequest = this.buildJSONParameter(payload, dnsLogUrl);
+                    break;
                 default:
                     newRequest = this.buildParameter(payload, dnsLogUrl);
             }
@@ -256,6 +262,12 @@ public class BurpAnalyzedRequest {
                     break;
                 case 2:
                     newRequest = this.buildFileParameter(payload, dnsLogUrl);
+                    break;
+                case 3:
+                    newRequest = this.buildXMLParameter(payload, dnsLogUrl);
+                    break;
+                case 4:
+                    newRequest = this.buildJSONParameter(payload, dnsLogUrl);
                     break;
                 default:
                     newRequest = this.buildAllParameter(payload, dnsLogUrl);
@@ -482,7 +494,7 @@ public class BurpAnalyzedRequest {
     }
 
     /**
-     * body中只有json、xml的参数构造方法
+     * 只对body的参数进行构造
      *
      * @param payload
      * @return
@@ -514,7 +526,46 @@ public class BurpAnalyzedRequest {
     }
 
     /**
-     * body中只有json、xml的参数构造方法
+     * body中只有json的参数构造方法
+     *
+     * @param payload
+     * @return
+     */
+    private byte[] buildJSONParameter(String payload, String dnsLogUrl) {
+        byte[] newRequest;
+        String dnsLog = this.getKey() + dnsLogUrl;
+        newRequest = this.requestResponse().getRequest();
+        String body = this.analyseJson(this.customBurpHelpers.getHttpRequestBody(newRequest), payload, dnsLog);
+        // 添加header头
+        List<String> headers = this.getHeaders(payload, dnsLog);
+        newRequest = this.helpers.buildHttpMessage(
+                headers,
+                body.getBytes());
+        return newRequest;
+    }
+
+    /**
+     * body中只有XML的参数构造方法
+     *
+     * @param payload
+     * @return
+     */
+    private byte[] buildXMLParameter(String payload, String dnsLogUrl) {
+        byte[] newRequest;
+        String dnsLog = this.getKey() + dnsLogUrl;
+        newRequest = this.requestResponse().getRequest();
+        String body = this.analyseXML(this.customBurpHelpers.getHttpRequestBody(newRequest), payload, dnsLog);
+        // 添加header头
+        List<String> headers = this.getHeaders(payload, dnsLog);
+        newRequest = this.helpers.buildHttpMessage(
+                headers,
+                body.getBytes());
+        return newRequest;
+    }
+
+
+    /**
+     * request所有参数的构造方法
      *
      * @param payload
      * @return
