@@ -65,7 +65,6 @@ public class RemoteCmdScan extends AAppExtension {
 
     private void runExtension() {
 
-        PrintWriter stdout = new PrintWriter(this.callbacks.getStdout(), true);
         for (String payload : this.payloads) {
             // 这个参数为true说明插件已经被卸载,退出所有任务,避免继续扫描
             if (this.globalVariableReader.getBooleanData("isExtensionUnload")) {
@@ -141,7 +140,7 @@ public class RemoteCmdScan extends AAppExtension {
         // 发送请求
         IHttpRequestResponse newHttpRequestResponse = analyzedRequest.makeHttpRequest(payload, dnsLogUrl);
         // 相关变量设置
-        this.keyArrayList.add(key);
+        this.keyArrayList.add(analyzedRequest.getForReKey() + key);
         this.dnsLogUrlArrayList.add(dnsLogUrl);
         this.httpRequestResponseArrayList.add(newHttpRequestResponse);
 
@@ -151,7 +150,7 @@ public class RemoteCmdScan extends AAppExtension {
             return;
         }
         // dnslog 内容匹配判断
-        if (!dnsLogBodyContent.contains(key)) {
+        if (!dnsLogBodyContent.contains(analyzedRequest.getForReKey() + key)) {
             return;
         }
 

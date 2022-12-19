@@ -310,10 +310,22 @@ public class BurpAnalyzedRequest {
         String key = this.helpers.analyzeRequest(this.requestResponse).getMethod() + "."
                 + this.customBurpUrl.getRequestHost() + "."
                 + this.customBurpUrl.getRequestPort()
-                + this.customBurpUrl.getRequestPath().replace("/",".") + ".";
+                + this.customBurpUrl.getRequestPath().replace("/",".") + "eeeee";
         return key;
     }
 
+
+    /**
+     * 获取特征key
+     *
+     * @return
+     */
+    public String getForReKey(){
+        String key = this.customBurpUrl.getRequestHost() + "."
+                + this.customBurpUrl.getRequestPort()
+                + this.customBurpUrl.getRequestPath().replace("/",".") + "eeeee";
+        return key;
+    }
 
     /**
      * json数据格式请求处理方法
