@@ -194,7 +194,7 @@ dnsLogModule:
   # BurpDnsLog = burp自带的dnslog接口
   # Ceye = http://ceye.io的接口
   # DnsLogPrivate = 自搭建的DNSLOG接口
-  provider: "DnsLogPrivate"
+  provider: "DnsLogCn"
   # 其它数据,用于一些需要验证接口取值使用的
   # 注意: key=value;为一个参数
   # 例如:
