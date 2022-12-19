@@ -49,7 +49,7 @@ public class BurpExtender implements IBurpExtender, IScannerCheck, IExtensionSta
         callbacks.setExtensionName(NAME);
         callbacks.registerScannerCheck(this);
         callbacks.registerExtensionStateListener(this);
-
+        callbacks.registerContextMenuFactory(this);
         // 配置文件
         this.yamlReader = YamlReader.getInstance(callbacks);
         // 基本信息输出
@@ -172,35 +172,41 @@ public class BurpExtender implements IBurpExtender, IScannerCheck, IExtensionSta
                 return ;
             }
 
-            try {
-                // 远程cmd扩展
-                IScanIssue remoteCmdIssuesDetail = this.remoteCmdExtension(baseAnalyzedRequest);
-                if (remoteCmdIssuesDetail != null) {
-                    issues.add(remoteCmdIssuesDetail);
+            new Thread() { // 由于createmenuitem不能进行创建buildHttpMessage，所以另起一个线程进行探测
+                public void run() {
+                    try {
+                        // 远程cmd扩展
+                        IScanIssue remoteCmdIssuesDetail = remoteCmdExtension(baseAnalyzedRequest);
+                        if (remoteCmdIssuesDetail != null) {
+                            issues.add(remoteCmdIssuesDetail);
+                        }
+                    } catch (TaskTimeoutException e) {
+                        stdout.println("========插件错误-超时错误============");
+                        stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
+                        stdout.println("请使用该url重新访问,若是还多次出现此错误,则很有可能waf拦截");
+                        stdout.println("错误详情请查看Extender里面对应插件的Errors标签页");
+                        stdout.println("========================================");
+                        stdout.println(" ");
+                        e.printStackTrace(stderr);
+                    } catch (Exception e) {
+                        stdout.println("========插件错误-未知错误============");
+                        stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
+                        stdout.println("请使用该url重新访问,若是还多次出现此错误,则很有可能waf拦截");
+                        stdout.println("错误详情请查看Extender里面对应插件的Errors标签页");
+                        stdout.println("========================================");
+                        stdout.println(" ");
+                        e.printStackTrace(stderr);
+                    } finally {
+                        stdout.println("================扫描完毕================");
+                        stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
+                        stdout.println("========================================");
+                        stdout.println(" ");
+                    }
+
                 }
-            } catch (TaskTimeoutException e) {
-                this.stdout.println("========插件错误-超时错误============");
-                this.stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
-                this.stdout.println("请使用该url重新访问,若是还多次出现此错误,则很有可能waf拦截");
-                this.stdout.println("错误详情请查看Extender里面对应插件的Errors标签页");
-                this.stdout.println("========================================");
-                this.stdout.println(" ");
-                e.printStackTrace(this.stderr);
-            } catch (Exception e) {
-                this.stdout.println("========插件错误-未知错误============");
-                this.stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
-                this.stdout.println("请使用该url重新访问,若是还多次出现此错误,则很有可能waf拦截");
-                this.stdout.println("错误详情请查看Extender里面对应插件的Errors标签页");
-                this.stdout.println("========================================");
-                this.stdout.println(" ");
-                e.printStackTrace(this.stderr);
-            } finally {
-                this.stdout.println("================扫描完毕================");
-                this.stdout.println(String.format("url: %s", baseBurpUrl.getHttpRequestUrl().toString()));
-                this.stdout.println("========================================");
-                this.stdout.println(" ");
-            }
-        });
+            }.start();
+        }
+        );
 
         return jMenuItemList;
     }
