@@ -140,9 +140,8 @@ public class RemoteCmdScan extends AAppExtension {
 
         // 发送请求
         IHttpRequestResponse newHttpRequestResponse = analyzedRequest.makeHttpRequest(payload, dnsLogUrl);
-
         // 相关变量设置
-        this.keyArrayList.add(analyzedRequest.getKey() + key);
+        this.keyArrayList.add(key);
         this.dnsLogUrlArrayList.add(dnsLogUrl);
         this.httpRequestResponseArrayList.add(newHttpRequestResponse);
 
@@ -151,7 +150,6 @@ public class RemoteCmdScan extends AAppExtension {
         if (dnsLogBodyContent == null || dnsLogBodyContent.length() <= 0) {
             return;
         }
-
         // dnslog 内容匹配判断
         if (!dnsLogBodyContent.contains(key)) {
             return;

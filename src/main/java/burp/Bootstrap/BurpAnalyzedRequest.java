@@ -310,7 +310,7 @@ public class BurpAnalyzedRequest {
         String key = this.helpers.analyzeRequest(this.requestResponse).getMethod() + "."
                 + this.customBurpUrl.getRequestHost() + "."
                 + this.customBurpUrl.getRequestPort()
-                + this.customBurpUrl.getRequestPath().replace("/",".");
+                + this.customBurpUrl.getRequestPath().replace("/",".") + ".";
         return key;
     }
 
