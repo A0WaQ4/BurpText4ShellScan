@@ -201,5 +201,4 @@ dnsLogModule:
   # a=1; b=2; c=3;
   # Ceye的配置等于: token=xxx;Identifier=xxxx.ceye.io;
   # DnsLogPrivate的配置： DnsDomain=dns.ld; Identifier=http://dns/token
-  # other: "DnsDomain=5b7c4324.dns.1433.eu.org;Identifier=https://dig.pm/12qa8ygnz4jy;"
-  other: "DnsDomain=a0418078.dnsbug.cn;Identifier=http://47.111.240.12:8000/1klm0hg5rf6y;"
+  other: "DnsDomain=5b7c4324.dns.1433.eu.org;Identifier=https://dig.pm/12qa8ygnz4jy;"
