@@ -6,7 +6,7 @@
 
     <groupId>main.java.burp</groupId>
     <artifactId>Text4ShellScan</artifactId>
-    <version>1.3</version>
+    <version>1.4</version>
 
     <build>
         <plugins>

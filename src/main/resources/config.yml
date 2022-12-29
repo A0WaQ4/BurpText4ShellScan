@@ -51,6 +51,11 @@ scan:
     #   - "www.domain1.com"
     #   - "*.domain2.com"
     whitelist:
+  headersName:
+    #header头黑名单
+    blacklist:
+      - "Cookie"
+      - "Authorize"
 
 # url黑名单后缀
 # url的后缀出现这些字段的都不进行测试

@@ -26,6 +26,8 @@ public class BurpAnalyzedRequest {
 
     private IHttpRequestResponse requestResponse;
 
+    private YamlReader yamlReader;
+
     private Tags tags;
 
     public BurpAnalyzedRequest(IBurpExtenderCallbacks callbacks, Tags tags, IHttpRequestResponse requestResponse) {
@@ -37,6 +39,8 @@ public class BurpAnalyzedRequest {
         this.customBurpHelpers = new CustomBurpHelpers(callbacks);
         this.requestResponse = requestResponse;
         this.customBurpUrl = new CustomBurpUrl(this.callbacks , requestResponse);
+        // 配置文件
+        this.yamlReader = YamlReader.getInstance(callbacks);
 
         initParameters();
         initJsonXmlFileParameters();
@@ -288,7 +292,7 @@ public class BurpAnalyzedRequest {
      */
     public Integer isJSONOrXML(String str) {
         try {
-            JSON.parse(str.replaceAll("(\\[(.*?)])","\"test\""));
+            JSON.parse(str.replaceAll("(\\[(.*?)])","\"test\"").trim());
             return 1;
         } catch (Exception e) {
         }
@@ -351,18 +355,33 @@ public class BurpAnalyzedRequest {
         List<String> headers = this.analyzeRequest().getHeaders();
         int paramNumber = 1;
 
-        for(int i =1; i<headers.size();i++){
-            if(headers.get(i).contains("User-Agent:") || headers.get(i).contains("token:") ||
-                    headers.get(i).contains("Token:") || headers.get(i).contains("Bearer Token:") ||
-                    headers.get(i).contains("X-Forwarded-For:") || headers.get(i).contains("Content-Type:") ||
-                    headers.get(i).contains("Referer:") || headers.get(i).contains("referer:") ||
-                    headers.get(i).contains("Origin:")){
-                headers.set(i,headers.get(i) + payload.replace("dns-url",(paramNumber++)+ "." +"header" +"."+dnsLog));
+        List<String> headersNameBlacklist = this.yamlReader.getStringList("scan.headersName.blacklist");
+        for(int i =2; i<headers.size();i++){
+            boolean isBlackHeader = false;
+            for(String headerNameBlacklist : headersNameBlacklist){
+                if(headers.get(i).startsWith(headerNameBlacklist)){
+                    isBlackHeader = true;
+                    break;
+                }
             }
-            if(headers.get(i).contains("Accept-Language:") || headers.get(i).contains("Accept:") ||
-                    headers.get(i).contains("Accept-Encoding:")){
-                headers.set(i, headers.get(i) + "," + payload.replace("dns-url",(paramNumber++) + "." +"header" + "."+ dnsLog));
+            if(!isBlackHeader){
+                if(headers.get(i).contains(",")){
+                    headers.set(i, headers.get(i) + "," + payload.replace("dns-url",(paramNumber++) + "." +"header" + "."+ dnsLog));
+                } else {
+                    headers.set(i, headers.get(i) + payload.replace("dns-url", (paramNumber++) + "." + "header" + "." + dnsLog));
+                }
             }
+//            if(headers.get(i).contains("User-Agent:") || headers.get(i).contains("token:") ||
+//                    headers.get(i).contains("Token:") || headers.get(i).contains("Bearer Token:") ||
+//                    headers.get(i).contains("X-Forwarded-For:") || headers.get(i).contains("Content-Type:") ||
+//                    headers.get(i).contains("Referer:") || headers.get(i).contains("referer:") ||
+//                    headers.get(i).contains("Origin:")){
+//                headers.set(i,headers.get(i) + payload.replace("dns-url",(paramNumber++)+ "." +"header" +"."+dnsLog));
+//            }
+//            if(headers.get(i).contains("Accept-Language:") || headers.get(i).contains("Accept:") ||
+//                    headers.get(i).contains("Accept-Encoding:")){
+//                headers.set(i, headers.get(i) + "," + payload.replace("dns-url",(paramNumber++) + "." +"header" + "."+ dnsLog));
+//            }
         }
         return headers;
     }
